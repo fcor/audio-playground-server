@@ -158,8 +158,8 @@ const createWebRtcTransport = async (callback) => {
     const webRtcTransport_options = {
       listenIps: [
         {
-          ip: "127.0.0.1",
-          // announcedIp: "127.0.0.1",
+          ip: "0.0.0.0",
+          announcedIp: config.publicIP,
         },
       ],
       enableUdp: true,
