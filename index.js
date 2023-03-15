@@ -9,7 +9,7 @@ const { config } = require("./config/index");
 // app.use(cors());
 
 const { Server } = require("socket.io");
-const { createUser, getUsers } = require("./utils");
+const { createUser, getUsers, removeUser } = require("./utils");
 const io = new Server(server);
 
 let worker;
@@ -26,8 +26,8 @@ const mediaCodecs = [
     kind: "audio",
     mimeType: "audio/opus",
     clockRate: 48000,
-    channels: 2
-  }
+    channels: 2,
+  },
 ];
 async function setupMediasoup() {
   worker = await mediasoup.createWorker({
@@ -51,11 +51,12 @@ io.on("connection", (socket) => {
 
   socket.emit("get:startingPackage", {
     rtpCapabilities: router.rtpCapabilities,
-    users: currentUsers
-  })
+    users: currentUsers,
+  });
 
   socket.on("disconnect", () => {
     console.log(`Disconnected: ${socket.id}`);
+    removeUser(socket.id);
   });
 
   socket.on("request:rtpCapabilities", (data, callback) => {
@@ -73,57 +74,62 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on('transportConnect', async ({ dtlsParameters }) => {
-    console.log('DTLS PARAMS... ', { dtlsParameters })
-    await producerTransport.connect({ dtlsParameters })
-  })
+  socket.on("transportConnect", async ({ dtlsParameters }) => {
+    console.log("DTLS PARAMS... ", { dtlsParameters });
+    await producerTransport.connect({ dtlsParameters });
+  });
 
-  socket.on('transportProduce', async ({ kind, rtpParameters, appData }, callback) => {
-    // call produce based on the prameters from the client
-    producer = await producerTransport.produce({
-      kind,
-      rtpParameters,
-    })
+  socket.on(
+    "transportProduce",
+    async ({ kind, rtpParameters, appData }, callback) => {
+      // call produce based on the prameters from the client
+      producer = await producerTransport.produce({
+        kind,
+        rtpParameters,
+      });
 
-    console.log('Producer ID: ', producer.id, producer.kind)
+      console.log("Producer ID: ", producer.id, producer.kind);
 
-    producer.on('transportclose', () => {
-      console.log('transport for this producer closed ')
-      producer.close()
-    })
+      producer.on("transportclose", () => {
+        console.log("transport for this producer closed ");
+        producer.close();
+      });
 
-    // Send back to the client the Producer's id
-    callback({
-      id: producer.id
-    })
-  })
+      // Send back to the client the Producer's id
+      callback({
+        id: producer.id,
+      });
+    }
+  );
 
-  socket.on('transportRecvConnect', async ({ dtlsParameters }) => {
-    console.log(`DTLS PARAMS: ${dtlsParameters} hey `)
-    await consumerTransport.connect({ dtlsParameters })
-  })
+  socket.on("transportRecvConnect", async ({ dtlsParameters }) => {
+    console.log(`DTLS PARAMS: ${dtlsParameters} hey `);
+    await consumerTransport.connect({ dtlsParameters });
+  });
 
-  socket.on('consume', async ({ rtpCapabilities }, callback) => {
+  socket.on("consume", async ({ rtpCapabilities }, callback) => {
     try {
       // check if the router can consume the specified producer
-      if (router.canConsume({
-        producerId: producer.id,
-        rtpCapabilities
-      })) {
+      if (
+        router.canConsume({
+          producerId: producer.id,
+          rtpCapabilities,
+        })
+      ) {
         // transport can now consume and return a consumer
         consumer = await consumerTransport.consume({
           producerId: producer.id,
           rtpCapabilities,
           paused: true,
-        })
+        });
 
-        consumer.on('transportclose', () => {
-          console.log('transport close from consumer')
-        })
+        consumer.on("transportclose", () => {
+          console.log("transport close from consumer");
+        });
 
-        consumer.on('producerclose', () => {
-          console.log('producer of consumer closed')
-        })
+        consumer.on("producerclose", () => {
+          console.log("producer of consumer closed");
+        });
 
         // from the consumer extract the following params
         // to send back to the Client
@@ -132,25 +138,25 @@ io.on("connection", (socket) => {
           producerId: producer.id,
           kind: consumer.kind,
           rtpParameters: consumer.rtpParameters,
-        }
+        };
 
         // send the parameters to the client
-        callback({ params })
+        callback({ params });
       }
     } catch (error) {
-      console.log(error.message)
+      console.log(error.message);
       callback({
         params: {
-          error: error
-        }
-      })
+          error: error,
+        },
+      });
     }
-  })
+  });
 
-  socket.on('consumerResume', async () => {
-    console.log('consumer resume')
-    await consumer.resume()
-  })
+  socket.on("consumerResume", async () => {
+    console.log("consumer resume");
+    await consumer.resume();
+  });
 });
 
 server.listen(config.port, function () {
