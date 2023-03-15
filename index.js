@@ -9,7 +9,7 @@ const { config } = require("./config/index");
 // app.use(cors());
 
 const { Server } = require("socket.io");
-const { createUser } = require("./utils");
+const { createUser, getUsers } = require("./utils");
 const io = new Server(server);
 
 let worker;
