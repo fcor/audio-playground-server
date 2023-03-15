@@ -9,6 +9,7 @@ const { config } = require("./config/index");
 // app.use(cors());
 
 const { Server } = require("socket.io");
+const { createUser } = require("./utils");
 const io = new Server(server);
 
 let worker;
@@ -44,9 +45,13 @@ async function setupMediasoup() {
 
 io.on("connection", (socket) => {
   console.log(`Connected: ${socket.id}`);
+  createUser(socket.id);
 
-  socket.emit("get:rtpCapabilities", {
+  const currentUsers = getUsers();
+
+  socket.emit("get:startingPackage", {
     rtpCapabilities: router.rtpCapabilities,
+    users: currentUsers
   })
 
   socket.on("disconnect", () => {
