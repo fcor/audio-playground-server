@@ -3,6 +3,8 @@ const users = [];
 function createUser(id) {
   users.push({
     id,
+    producerId: "",
+    consumerId: ""
   });
 }
 

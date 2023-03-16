@@ -16,7 +16,7 @@ let worker;
 let router;
 let producerTransport;
 let consumerTransport;
-let producer;
+let producers;
 let consumer;
 setupMediasoup();
 
@@ -57,13 +57,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log(`Disconnected: ${socket.id}`);
     removeUser(socket.id);
-  });
-
-  socket.on("request:rtpCapabilities", (data, callback) => {
-    const rtpCapabilities = router.rtpCapabilities;
-    callback({
-      rtpCapabilities,
-    });
+    // TO DO: Clean up audio stuff
   });
 
   socket.on("request:webRtcTransport", async ({ sender }, callback) => {
@@ -103,7 +97,7 @@ io.on("connection", (socket) => {
   );
 
   socket.on("transportRecvConnect", async ({ dtlsParameters }) => {
-    console.log(`DTLS PARAMS: ${dtlsParameters} hey `);
+    console.log(`DTLS PARAMS: ${dtlsParameters}`);
     await consumerTransport.connect({ dtlsParameters });
   });
 
