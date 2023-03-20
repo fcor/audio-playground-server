@@ -9,14 +9,13 @@ const { config } = require("./config/index");
 // app.use(cors());
 
 const { Server } = require("socket.io");
-const { createUser, getUsers, removeUser } = require("./utils");
+const { createUser, getUsers, removeUser, saveProducerId } = require("./utils");
 const io = new Server(server);
 
 let worker;
 let router;
-let producerTransport;
-let consumerTransport;
-let producers;
+let transports = {}
+let producers = []
 let consumer;
 setupMediasoup();
 
@@ -62,27 +61,31 @@ io.on("connection", (socket) => {
 
   socket.on("request:webRtcTransport", async ({ sender }, callback) => {
     if (sender) {
-      producerTransport = await createWebRtcTransport(callback);
+      const transport = await createWebRtcTransport(callback);
+      transports[transport.id] = transport
     } else {
       consumerTransport = await createWebRtcTransport(callback);
     }
   });
 
-  socket.on("transportConnect", async ({ dtlsParameters }) => {
+  socket.on("transportConnect", async ({ dtlsParameters, id }) => {
     console.log("DTLS PARAMS... ", { dtlsParameters });
-    await producerTransport.connect({ dtlsParameters });
+    const transport = transports[id];
+    await transport.connect({ dtlsParameters });
   });
 
   socket.on(
     "transportProduce",
-    async ({ kind, rtpParameters, appData }, callback) => {
+    async ({ kind, rtpParameters, appData, id }, callback) => {
       // call produce based on the prameters from the client
-      producer = await producerTransport.produce({
+      const transport = transports[id];
+      const producer = await transport.produce({
         kind,
         rtpParameters,
       });
 
-      console.log("Producer ID: ", producer.id, producer.kind);
+      producers.push(producer);
+      saveProducerId(socket.id, producer.id);
 
       producer.on("transportclose", () => {
         console.log("transport for this producer closed ");
@@ -106,13 +109,13 @@ io.on("connection", (socket) => {
       // check if the router can consume the specified producer
       if (
         router.canConsume({
-          producerId: producer.id,
+          producerId: producers[0].id,
           rtpCapabilities,
         })
       ) {
         // transport can now consume and return a consumer
         consumer = await consumerTransport.consume({
-          producerId: producer.id,
+          producerId: producers[0].id,
           rtpCapabilities,
           paused: true,
         });
@@ -129,7 +132,7 @@ io.on("connection", (socket) => {
         // to send back to the Client
         const params = {
           id: consumer.id,
-          producerId: producer.id,
+          producerId: producers[0].id,
           kind: consumer.kind,
           rtpParameters: consumer.rtpParameters,
         };

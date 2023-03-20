@@ -18,9 +18,15 @@ function removeUser(id) {
   users.splice(userIndex, 1);
 }
 
+function saveProducerId(userId, producerId) {
+  const userIndex = users.findIndex((user) => user.id === userId);
+  users[userIndex].producerId = producerId;
+}
+
 module.exports = {
   createUser,
   getUsers,
   removeUser,
   removeUser,
+  saveProducerId
 };
