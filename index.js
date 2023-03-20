@@ -14,8 +14,8 @@ const io = new Server(server);
 
 let worker;
 let router;
-let transports = {}
-let producers = []
+let transports = {};
+let producers = [];
 let consumer;
 setupMediasoup();
 
@@ -62,7 +62,7 @@ io.on("connection", (socket) => {
   socket.on("request:webRtcTransport", async ({ sender }, callback) => {
     if (sender) {
       const transport = await createWebRtcTransport(callback);
-      transports[transport.id] = transport
+      transports[transport.id] = transport;
     } else {
       consumerTransport = await createWebRtcTransport(callback);
     }
@@ -104,18 +104,19 @@ io.on("connection", (socket) => {
     await consumerTransport.connect({ dtlsParameters });
   });
 
-  socket.on("consume", async ({ rtpCapabilities }, callback) => {
+  socket.on("consume", async ({ rtpCapabilities, producerId }, callback) => {
+    const producer = getProducerById(producerId);
     try {
       // check if the router can consume the specified producer
       if (
         router.canConsume({
-          producerId: producers[0].id,
+          producerId: producer.id,
           rtpCapabilities,
         })
       ) {
         // transport can now consume and return a consumer
         consumer = await consumerTransport.consume({
-          producerId: producers[0].id,
+          producerId: producer.id,
           rtpCapabilities,
           paused: true,
         });
@@ -132,7 +133,7 @@ io.on("connection", (socket) => {
         // to send back to the Client
         const params = {
           id: consumer.id,
-          producerId: producers[0].id,
+          producerId: producer.id,
           kind: consumer.kind,
           rtpParameters: consumer.rtpParameters,
         };
@@ -209,3 +210,9 @@ const createWebRtcTransport = async (callback) => {
     });
   }
 };
+
+// Functions - helpers
+function getProducerById(id) {
+  const producer = producers.find((producer) => producer.id === id);
+  return producer;
+}
