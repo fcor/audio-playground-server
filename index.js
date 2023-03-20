@@ -226,6 +226,6 @@ function getProducerById(id) {
 }
 
 function getConsumerById(id) {
-  const consumer = producers.find((consumer) => consumer.id === id);
+  const consumer = consumers.find((consumer) => consumer.id === id);
   return consumer;
 }
