@@ -60,12 +60,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("request:webRtcTransport", async ({ sender }, callback) => {
-    if (sender) {
-      const transport = await createWebRtcTransport(callback);
-      transports[transport.id] = transport;
-    } else {
-      consumerTransport = await createWebRtcTransport(callback);
-    }
+    const transport = await createWebRtcTransport(callback);
+    transports[transport.id] = transport;
   });
 
   socket.on("transportConnect", async ({ dtlsParameters, id }) => {
@@ -99,9 +95,10 @@ io.on("connection", (socket) => {
     }
   );
 
-  socket.on("transportRecvConnect", async ({ dtlsParameters }) => {
+  socket.on("transportRecvConnect", async ({ dtlsParameters, id }) => {
     console.log(`DTLS PARAMS: ${dtlsParameters}`);
-    await consumerTransport.connect({ dtlsParameters });
+    const transport = transports[id];
+    await transport.connect({ dtlsParameters });
   });
 
   socket.on("consume", async ({ rtpCapabilities, producerId }, callback) => {
