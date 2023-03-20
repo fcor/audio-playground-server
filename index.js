@@ -158,8 +158,9 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("consumerResume", async () => {
+  socket.on("consumerResume", async ({ consumerId }) => {
     console.log("consumer resume");
+    const consumer = getConsumerById(consumerId);
     await consumer.resume();
   });
 });
@@ -222,4 +223,9 @@ const createWebRtcTransport = async (callback) => {
 function getProducerById(id) {
   const producer = producers.find((producer) => producer.id === id);
   return producer;
+}
+
+function getConsumerById(id) {
+  const consumer = producers.find((consumer) => consumer.id === id);
+  return consumer;
 }
