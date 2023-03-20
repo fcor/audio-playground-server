@@ -89,6 +89,12 @@ io.on("connection", (socket) => {
       producers.push(producer);
       saveProducerId(socket.id, producer.id);
 
+      socket.broadcast("newUser", {
+        id: socket.id,
+        producerId: producer.id,
+        consumerId: "",
+      });
+
       producer.on("transportclose", () => {
         console.log("transport for this producer closed ");
         producer.close();
@@ -107,56 +113,59 @@ io.on("connection", (socket) => {
     await transport.connect({ dtlsParameters });
   });
 
-  socket.on("consume", async ({ rtpCapabilities, producerId, consumerTransportId }, callback) => {
-    const producer = getProducerById(producerId);
-    try {
-      // check if the router can consume the specified producer
-      if (
-        router.canConsume({
-          producerId: producer.id,
-          rtpCapabilities,
-        })
-      ) {
-        // transport can now consume and return a consumer
-        const transport = transports[consumerTransportId]
-        const consumer = await transport.consume({
-          producerId: producer.id,
-          rtpCapabilities,
-          paused: true,
+  socket.on(
+    "consume",
+    async ({ rtpCapabilities, producerId, consumerTransportId }, callback) => {
+      const producer = getProducerById(producerId);
+      try {
+        // check if the router can consume the specified producer
+        if (
+          router.canConsume({
+            producerId: producer.id,
+            rtpCapabilities,
+          })
+        ) {
+          // transport can now consume and return a consumer
+          const transport = transports[consumerTransportId];
+          const consumer = await transport.consume({
+            producerId: producer.id,
+            rtpCapabilities,
+            paused: true,
+          });
+
+          consumers.push(consumer);
+          saveConsumerId(socket.id, consumer.id);
+
+          consumer.on("transportclose", () => {
+            console.log("transport close from consumer");
+          });
+
+          consumer.on("producerclose", () => {
+            console.log("producer of consumer closed");
+          });
+
+          // from the consumer extract the following params
+          // to send back to the Client
+          const params = {
+            id: consumer.id,
+            producerId: producer.id,
+            kind: consumer.kind,
+            rtpParameters: consumer.rtpParameters,
+          };
+
+          // send the parameters to the client
+          callback({ params });
+        }
+      } catch (error) {
+        console.log(error.message);
+        callback({
+          params: {
+            error: error,
+          },
         });
-
-        consumers.push(consumer);
-        saveConsumerId(socket.id, consumer.id);
-
-        consumer.on("transportclose", () => {
-          console.log("transport close from consumer");
-        });
-
-        consumer.on("producerclose", () => {
-          console.log("producer of consumer closed");
-        });
-
-        // from the consumer extract the following params
-        // to send back to the Client
-        const params = {
-          id: consumer.id,
-          producerId: producer.id,
-          kind: consumer.kind,
-          rtpParameters: consumer.rtpParameters,
-        };
-
-        // send the parameters to the client
-        callback({ params });
       }
-    } catch (error) {
-      console.log(error.message);
-      callback({
-        params: {
-          error: error,
-        },
-      });
     }
-  });
+  );
 
   socket.on("consumerResume", async ({ consumerId }) => {
     console.log("consumer resume", consumerId);
