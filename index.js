@@ -159,7 +159,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("consumerResume", async ({ consumerId }) => {
-    console.log("consumer resume");
+    console.log("consumer resume", consumerId);
     const consumer = getConsumerById(consumerId);
     await consumer.resume();
   });
