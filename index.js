@@ -107,7 +107,7 @@ io.on("connection", (socket) => {
     await transport.connect({ dtlsParameters });
   });
 
-  socket.on("consume", async ({ rtpCapabilities, producerId }, callback) => {
+  socket.on("consume", async ({ rtpCapabilities, producerId, consumerTransportId }, callback) => {
     const producer = getProducerById(producerId);
     try {
       // check if the router can consume the specified producer
@@ -118,7 +118,8 @@ io.on("connection", (socket) => {
         })
       ) {
         // transport can now consume and return a consumer
-        const consumer = await consumerTransport.consume({
+        const transport = transports[consumerTransportId]
+        const consumer = await transport.consume({
           producerId: producer.id,
           rtpCapabilities,
           paused: true,
