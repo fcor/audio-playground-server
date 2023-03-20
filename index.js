@@ -89,7 +89,7 @@ io.on("connection", (socket) => {
       producers.push(producer);
       saveProducerId(socket.id, producer.id);
 
-      socket.broadcast("newUser", {
+      socket.broadcast.emit("newUser", {
         id: socket.id,
         producerId: producer.id,
         consumerId: "",
