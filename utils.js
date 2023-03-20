@@ -22,11 +22,16 @@ function saveProducerId(userId, producerId) {
   const userIndex = users.findIndex((user) => user.id === userId);
   users[userIndex].producerId = producerId;
 }
+function saveConsumerId(userId, consumerId) {
+  const userIndex = users.findIndex((user) => user.id === userId);
+  users[userIndex].consumerId = consumerId;
+}
 
 module.exports = {
   createUser,
   getUsers,
   removeUser,
   removeUser,
-  saveProducerId
+  saveProducerId,
+  saveConsumerId,
 };

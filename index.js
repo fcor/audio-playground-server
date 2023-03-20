@@ -9,14 +9,20 @@ const { config } = require("./config/index");
 // app.use(cors());
 
 const { Server } = require("socket.io");
-const { createUser, getUsers, removeUser, saveProducerId } = require("./utils");
+const {
+  createUser,
+  getUsers,
+  removeUser,
+  saveProducerId,
+  saveConsumerId,
+} = require("./utils");
 const io = new Server(server);
 
 let worker;
 let router;
 let transports = {};
 let producers = [];
-let consumer;
+let consumers = [];
 setupMediasoup();
 
 /* ***MEDIASOUP*** */
@@ -112,11 +118,14 @@ io.on("connection", (socket) => {
         })
       ) {
         // transport can now consume and return a consumer
-        consumer = await consumerTransport.consume({
+        const consumer = await consumerTransport.consume({
           producerId: producer.id,
           rtpCapabilities,
           paused: true,
         });
+
+        consumers.push(consumer);
+        saveConsumerId(socket.id, consumer.id);
 
         consumer.on("transportclose", () => {
           console.log("transport close from consumer");
