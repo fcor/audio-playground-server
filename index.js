@@ -172,6 +172,12 @@ io.on("connection", (socket) => {
     const consumer = getConsumerById(consumerId);
     await consumer.resume();
   });
+
+  socket.on("producerPause", async ({ id }) => {
+    console.log("producer resume", id);
+    const producer = getProducerById(id);
+    await producer.resume();
+  });
 });
 
 server.listen(config.port, function () {
