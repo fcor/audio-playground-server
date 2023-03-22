@@ -23,6 +23,8 @@ let router;
 let transports = {};
 let producers = [];
 let consumers = [];
+let isSessionMuted = false;
+
 setupMediasoup();
 
 /* ***MEDIASOUP*** */
@@ -174,10 +176,43 @@ io.on("connection", (socket) => {
   });
 
   socket.on("producerPause", async ({ id }) => {
+    console.log("producer pause", id);
+    const producer = getProducerById(id);
+    await producer.pause();
+  });
+
+  socket.on("producerResume", async ({ id }) => {
     console.log("producer resume", id);
     const producer = getProducerById(id);
     await producer.resume();
   });
+
+  socket.on("toggleMuteSession", async ({ id }) => {
+    if (isSessionMuted) {
+      producers.forEach((producer) => {
+        producer.resume()
+      })
+  
+      consumers.forEach((consumer) => {
+        consumer.resume()
+      })
+
+      io.emit("unmute");
+
+      isSessionMuted = false;
+    } else {
+      producers.forEach((producer) => {
+        producer.pause()
+      })
+      consumers.forEach((consumer) => {
+        consumer.pause()
+      })
+      isSessionMuted = true;
+
+      io.emit("unmute");
+    }
+  });
+
 });
 
 server.listen(config.port, function () {
