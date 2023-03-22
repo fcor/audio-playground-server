@@ -187,32 +187,31 @@ io.on("connection", (socket) => {
     await producer.resume();
   });
 
-  socket.on("toggleMuteSession", async ({ id }) => {
+  socket.on("toggleMuteSession", async () => {
     if (isSessionMuted) {
       producers.forEach((producer) => {
-        producer.resume()
-      })
-  
+        producer.resume();
+      });
+
       consumers.forEach((consumer) => {
-        consumer.resume()
-      })
+        consumer.resume();
+      });
 
       io.emit("unmute");
 
       isSessionMuted = false;
     } else {
       producers.forEach((producer) => {
-        producer.pause()
-      })
+        producer.pause();
+      });
       consumers.forEach((consumer) => {
-        consumer.pause()
-      })
+        consumer.pause();
+      });
       isSessionMuted = true;
 
       io.emit("unmute");
     }
   });
-
 });
 
 server.listen(config.port, function () {
